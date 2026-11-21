@@ -1,32 +1,39 @@
-// Reads and updates src/siteConfig.json for the Actions tab workflows.
+// Reads and updates src/siteConfig.json for the "Site settings" workflow in
+// the Actions tab (.github/workflows/site-settings.yml).
 //
-// update-site-settings.yml runs this with each form box passed in as an
-// environment variable (SETTING_INSTAGRAM, etc.). Blank boxes keep their
-// current value, and nothing is saved if any box has a problem.
+// Each form box is passed in as an environment variable (SETTING_INSTAGRAM,
+// etc.). SETTING_ACTION picks what to do:
+//   "Show current settings" lists every setting in a table.
+//   "Update settings" saves the filled-in boxes. Blank boxes keep their
+//   current value, and nothing is saved if any box has a problem.
 //
-// show-site-settings.yml runs it with --show to list the current settings.
+// To test on your computer, set the SETTING_ variables and run
+// `node .github/scripts/update-site-config.js`, or add --show to list the
+// current settings.
 
 const fs = require('fs');
 const path = require('path');
 
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'src', 'siteConfig.json');
 
+const SHOW = 'Show current settings';
+
 // The link boxes on the form. `site` limits a box to one website, so a link
 // can't be pasted into the wrong social media box.
 const LINKS = [
-    { env: 'SETTING_APPLICATION_FORM', key: 'applicationForm', label: 'Join Us Page – application form link' },
-    { env: 'SETTING_MODELLING_FORM', key: 'modellingForm', label: 'Modelling Service Page – Request Now form link' },
-    { env: 'SETTING_FACEBOOK', key: 'facebook', label: 'Footer – Facebook link', site: 'facebook.com' },
-    { env: 'SETTING_INSTAGRAM', key: 'instagram', label: 'Footer – Instagram link', site: 'instagram.com' },
-    { env: 'SETTING_LINKEDIN', key: 'linkedin', label: 'Footer – LinkedIn link', site: 'linkedin.com' },
-    { env: 'SETTING_LINKTREE', key: 'linktree', label: 'Home Page – Contact Us (Linktree) link' },
-    { env: 'SETTING_SPONSORSHIP_PACKAGE', key: 'sponsorshipPackage', label: 'Home Page – Sponsorship Package link' },
-    { env: 'SETTING_DONATE_ORGANIZATIONS', key: 'donateOrganizations', label: 'Home Page – donation link for organizations' },
-    { env: 'SETTING_DONATE_INDIVIDUALS', key: 'donateIndividuals', label: 'Home Page – donation link for individuals' },
+    { env: 'SETTING_APPLICATION_FORM', key: 'applicationForm', label: 'Application form link (Join Us page)' },
+    { env: 'SETTING_MODELLING_FORM', key: 'modellingForm', label: 'Request Now form link (Modelling Service page)' },
+    { env: 'SETTING_FACEBOOK', key: 'facebook', label: 'Facebook link (footer)', site: 'facebook.com' },
+    { env: 'SETTING_INSTAGRAM', key: 'instagram', label: 'Instagram link (footer)', site: 'instagram.com' },
+    { env: 'SETTING_LINKEDIN', key: 'linkedin', label: 'LinkedIn link (footer)', site: 'linkedin.com' },
+    { env: 'SETTING_LINKTREE', key: 'linktree', label: 'Contact Us / Linktree link (home page)' },
+    { env: 'SETTING_SPONSORSHIP_PACKAGE', key: 'sponsorshipPackage', label: 'Sponsorship Package link (home page)' },
+    { env: 'SETTING_DONATE_ORGANIZATIONS', key: 'donateOrganizations', label: 'Donation link for organizations (home page)' },
+    { env: 'SETTING_DONATE_INDIVIDUALS', key: 'donateIndividuals', label: 'Donation link for individuals (home page)' },
 ];
 
-const OPEN_LABEL = 'Join Us Page – applications open';
-const YEAR_LABEL = 'Join Us Page – application year';
+const OPEN_LABEL = 'Applications open (Join Us page)';
+const YEAR_LABEL = 'Application year (Join Us page)';
 
 function readInput(name) {
     return (process.env[name] || '').trim();
@@ -34,6 +41,15 @@ function readInput(name) {
 
 function describeOpen(isOpen) {
     return isOpen ? 'Open' : 'Closed';
+}
+
+// Every setting in the order the form shows them, with its current value
+function currentSettings(config) {
+    return [
+        { label: OPEN_LABEL, value: describeOpen(config.applicationsOpen) },
+        { label: YEAR_LABEL, value: config.applicationYear },
+        ...LINKS.map((field) => ({ label: field.label, value: config.links[field.key] })),
+    ];
 }
 
 // Returns the link with https:// at the start, or throws an error explaining
@@ -95,6 +111,27 @@ function tableCell(value) {
     return String(value).replace(/\|/g, '\\|');
 }
 
+function settingsTable(config) {
+    return [
+        '| Setting | Current value |',
+        '| --- | --- |',
+        ...currentSettings(config).map((s) => `| ${s.label} | ${tableCell(s.value)} |`),
+    ].join('\n');
+}
+
+// Every setting, with the new value filled in and marked for the ones that changed
+function updateTable(config, changes) {
+    const newValues = new Map(changes.map((c) => [c.label, c.new]));
+    return [
+        '| Setting | Current value | New value |',
+        '| --- | --- | --- |',
+        ...currentSettings(config).map((s) => (newValues.has(s.label)
+            ? `| ✏️ **${s.label}** | ${tableCell(s.value)} | **${tableCell(newValues.get(s.label))}** |`
+            : `| ${s.label} | ${tableCell(s.value)} | |`)),
+    ].join('\n');
+}
+
+// Only the settings that changed, for the pull request description
 function changesTable(changes) {
     return [
         '| Setting | Old | New |',
@@ -106,6 +143,7 @@ function changesTable(changes) {
 function update() {
     const original = fs.readFileSync(CONFIG_PATH, 'utf8');
     const config = JSON.parse(original);
+    const before = JSON.parse(original);
     const changes = [];
     const problems = [];
 
@@ -150,11 +188,15 @@ function update() {
 
     if (problems.length > 0) {
         writeSummary([
-            '## Nothing was changed',
+            '## ❌ Nothing was changed',
             '',
             'Fix these boxes and run the workflow again:',
             '',
             ...problems.map((problem) => `- ${problem}`),
+            '',
+            '### Current settings',
+            '',
+            settingsTable(before),
         ].join('\n'));
         setOutput('changed', 'false');
         process.exitCode = 1;
@@ -166,6 +208,10 @@ function update() {
             '## Nothing to change',
             '',
             'All boxes were blank or matched the current settings, so no pull request was created.',
+            '',
+            '### Current settings',
+            '',
+            settingsTable(before),
         ].join('\n'));
         setOutput('changed', 'false');
         return;
@@ -179,15 +225,20 @@ function update() {
     fs.writeFileSync(CONFIG_PATH, json + fileEnding);
     setOutput('changed', 'true');
 
-    const table = changesTable(changes);
-    writeSummary(['## Site settings updated', '', table].join('\n'));
+    writeSummary([
+        '## ✅ Site settings updated',
+        '',
+        'A pull request with these changes was opened. Its link is at the bottom of this page.',
+        '',
+        updateTable(before, changes),
+    ].join('\n'));
 
     if (process.env.PR_BODY_FILE) {
         const requestedBy = process.env.GITHUB_ACTOR ? ` by @${process.env.GITHUB_ACTOR}` : '';
         fs.writeFileSync(process.env.PR_BODY_FILE, [
-            `Requested${requestedBy} using the **Update site settings** form in the Actions tab.`,
+            `Requested${requestedBy} using the **Site settings** workflow in the Actions tab.`,
             '',
-            table,
+            changesTable(changes),
             '',
             'Before merging, click each new link to check it goes to the right page.',
             'After merging, run **Deploy to GitHub Pages** to update the live site.',
@@ -197,23 +248,25 @@ function update() {
 
 function show() {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    const rows = [
-        [OPEN_LABEL, describeOpen(config.applicationsOpen)],
-        [YEAR_LABEL, config.applicationYear],
-        ...LINKS.map((field) => [field.label, config.links[field.key]]),
-    ];
+    const filledIn = [
+        readInput('SETTING_APPLICATIONS_OPEN') !== 'No change' && readInput('SETTING_APPLICATIONS_OPEN'),
+        readInput('SETTING_APPLICATION_YEAR'),
+        ...LINKS.map((field) => readInput(field.env)),
+    ].some(Boolean);
+
     writeSummary([
         '## Current site settings',
         '',
-        '| Setting | Current value |',
-        '| --- | --- |',
-        ...rows.map(([label, value]) => `| ${label} | ${tableCell(value)} |`),
+        ...(filledIn
+            ? ['> You chose **Show current settings**, so the boxes you filled in were ignored. To save changes, run it again and choose **Update settings**.', '']
+            : []),
+        settingsTable(config),
         '',
-        'To change any of these, run **Update site settings** in the Actions tab.',
+        'To change any of these, run **Site settings** again, choose **Update settings**, and fill in only the boxes you want to change.',
     ].join('\n'));
 }
 
-if (process.argv.includes('--show')) {
+if (process.argv.includes('--show') || readInput('SETTING_ACTION') === SHOW) {
     show();
 } else {
     update();
