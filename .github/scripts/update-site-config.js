@@ -2,10 +2,9 @@
 // the Actions tab (.github/workflows/site-settings.yml).
 //
 // Each form box is passed in as an environment variable (SETTING_INSTAGRAM,
-// etc.). SETTING_ACTION picks what to do:
-//   "Show current settings" lists every setting in a table.
-//   "Update settings" saves the filled-in boxes. Blank boxes keep their
-//   current value, and nothing is saved if any box has a problem.
+// etc.). If every box is left as it is, this lists the current settings.
+// Otherwise it saves the filled-in boxes: blank boxes keep their current
+// value, and nothing is saved if any box has a problem.
 //
 // To test on your computer, set the SETTING_ variables and run
 // `node .github/scripts/update-site-config.js`, or add --show to list the
@@ -16,7 +15,9 @@ const path = require('path');
 
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'src', 'siteConfig.json');
 
-const SHOW = 'Show current settings';
+// The applications dropdown's choices, and what each one sets
+const KEEP = 'Keep current setting';
+const OPEN_CHOICES = { 'Open applications': true, 'Close applications': false };
 
 // The link boxes on the form. `site` limits a box to one website, so a link
 // can't be pasted into the wrong social media box.
@@ -32,7 +33,7 @@ const LINKS = [
     { env: 'SETTING_DONATE_INDIVIDUALS', key: 'donateIndividuals', label: 'Donation link for individuals (home page)' },
 ];
 
-const OPEN_LABEL = 'Applications open (Join Us page)';
+const OPEN_LABEL = 'Applications (Join Us page)';
 const YEAR_LABEL = 'Application year (Join Us page)';
 
 function readInput(name) {
@@ -148,16 +149,25 @@ function update() {
     const problems = [];
 
     const open = readInput('SETTING_APPLICATIONS_OPEN');
-    if (open && open !== 'No change') {
-        if (open !== 'Open' && open !== 'Closed') {
-            problems.push(`${OPEN_LABEL} must be "No change", "Open" or "Closed".`);
-        } else if ((open === 'Open') !== config.applicationsOpen) {
-            changes.push({ label: OPEN_LABEL, old: describeOpen(config.applicationsOpen), new: open });
-            config.applicationsOpen = open === 'Open';
+    const year = readInput('SETTING_APPLICATION_YEAR');
+    const filledIn = (open && open !== KEEP) || year || LINKS.some((field) => readInput(field.env));
+
+    // Nothing filled in: just show the current settings
+    if (!filledIn) {
+        show();
+        setOutput('changed', 'false');
+        return;
+    }
+
+    if (open && open !== KEEP) {
+        if (!(open in OPEN_CHOICES)) {
+            problems.push(`${OPEN_LABEL} must be "${KEEP}", "Open applications" or "Close applications".`);
+        } else if (OPEN_CHOICES[open] !== config.applicationsOpen) {
+            changes.push({ label: OPEN_LABEL, old: describeOpen(config.applicationsOpen), new: describeOpen(OPEN_CHOICES[open]) });
+            config.applicationsOpen = OPEN_CHOICES[open];
         }
     }
 
-    const year = readInput('SETTING_APPLICATION_YEAR');
     if (year) {
         try {
             const cleaned = cleanYear(year);
@@ -207,7 +217,7 @@ function update() {
         writeSummary([
             '## Nothing to change',
             '',
-            'All boxes were blank or matched the current settings, so no pull request was created.',
+            'Everything you filled in already matches the current settings, so no pull request was created.',
             '',
             '### Current settings',
             '',
@@ -248,25 +258,16 @@ function update() {
 
 function show() {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    const filledIn = [
-        readInput('SETTING_APPLICATIONS_OPEN') !== 'No change' && readInput('SETTING_APPLICATIONS_OPEN'),
-        readInput('SETTING_APPLICATION_YEAR'),
-        ...LINKS.map((field) => readInput(field.env)),
-    ].some(Boolean);
-
     writeSummary([
         '## Current site settings',
         '',
-        ...(filledIn
-            ? ['> You chose **Show current settings**, so the boxes you filled in were ignored. To save changes, run it again and choose **Update settings**.', '']
-            : []),
         settingsTable(config),
         '',
-        'To change any of these, run **Site settings** again, choose **Update settings**, and fill in only the boxes you want to change.',
+        'To change any of these, run **Site settings** again and fill in only the boxes you want to change.',
     ].join('\n'));
 }
 
-if (process.argv.includes('--show') || readInput('SETTING_ACTION') === SHOW) {
+if (process.argv.includes('--show')) {
     show();
 } else {
     update();

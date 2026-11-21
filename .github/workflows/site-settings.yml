@@ -1,12 +1,13 @@
 # Lets team members see and change the links and settings in
 # src/siteConfig.json from the Actions tab, without editing code.
 #
-# Click "Run workflow" and choose what to do:
-#   - "Show current settings" lists every setting in a table on the run's page.
-#   - "Update settings" saves the boxes you filled in. Leave a box blank to
-#     keep its current value.
+# Click "Run workflow":
+#   - To see the current settings, leave everything as it is and run it.
+#     The run's page shows every setting in a table.
+#   - To change settings, fill in only the boxes you want to change and run
+#     it. Blank boxes keep their current value.
 #
-# Updates never change main directly: they open a pull request for someone to
+# Changes never go to main directly: they open a pull request for someone to
 # review. After that's merged, run "Deploy to GitHub Pages" to update the site.
 
 name: Site settings
@@ -16,24 +17,17 @@ on:
   workflow_dispatch:
     inputs:
 
-      action:
-        description: 'What do you want to do? To update, fill in only the boxes you want to change. Leave the rest blank.'
-        type: choice
-        options:
-          - Show current settings
-          - Update settings
-        default: Show current settings
-
       # ---------- Join Us page ----------
 
+      # The first label also explains how to use the form
       applications_open:
-        description: 'Applications open? (Join Us page)'
+        description: 'Applications (Join Us page). Fill in only what you want to change. To just see the current settings, run with everything left as it is.'
         type: choice
         options:
-          - No change
-          - Open
-          - Closed
-        default: No change
+          - Keep current setting
+          - Open applications
+          - Close applications
+        default: Keep current setting
 
       application_year:
         description: 'Application year, e.g. 2027/28 (Join Us page)'
@@ -125,7 +119,6 @@ jobs:
       - name: Show or update settings
         id: update
         env:
-          SETTING_ACTION: ${{ inputs.action }}
           SETTING_APPLICATIONS_OPEN: ${{ inputs.applications_open }}
           SETTING_APPLICATION_YEAR: ${{ inputs.application_year }}
           SETTING_APPLICATION_FORM: ${{ inputs.application_form }}
@@ -140,7 +133,7 @@ jobs:
           PR_BODY_FILE: ${{ runner.temp }}/pr-body.md
         run: node .github/scripts/update-site-config.js
 
-      # Only runs if settings were updated and something actually changed
+      # Only runs if something was filled in and it actually changed a setting
       - name: Open a pull request
         if: steps.update.outputs.changed == 'true'
         env:
