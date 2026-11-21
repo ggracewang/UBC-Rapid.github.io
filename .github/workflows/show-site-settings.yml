@@ -1,0 +1,35 @@
+# Shows the current links and settings from src/siteConfig.json on main.
+#
+# Click "Run workflow", then open the run to see a table of every setting.
+# Keep it open in another tab while using "Update site settings".
+# This only reads the settings and never changes anything.
+
+name: Show current site settings
+
+
+on:
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: List current settings
+        run: node .github/scripts/update-site-config.js --show
