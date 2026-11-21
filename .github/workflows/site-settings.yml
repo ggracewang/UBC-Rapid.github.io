@@ -1,0 +1,164 @@
+# Lets team members see and change the links and settings in
+# src/siteConfig.json from the Actions tab, without editing code.
+#
+# Click "Run workflow":
+#   - To see the current settings, leave everything as it is and run it.
+#     The run's page shows every setting in a table.
+#   - To change settings, fill in only the boxes you want to change and run
+#     it. Blank boxes keep their current value.
+#
+# Changes never go to main directly: they open a pull request for someone to
+# review. After that's merged, run "Deploy to GitHub Pages" to update the site.
+
+name: Site settings
+
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      # ---------- Join Us page ----------
+
+      # The first label also explains how to use the form
+      applications_open:
+        description: 'Applications (Join Us page). Fill in only what you want to change. To just see the current settings, run with everything left as it is.'
+        type: choice
+        options:
+          - Keep current setting
+          - Open applications
+          - Close applications
+        default: Keep current setting
+
+      application_year:
+        description: 'Application year, e.g. 2027/28 (Join Us page)'
+        type: string
+        required: false
+
+      application_form:
+        description: 'Application form link (Join Us page)'
+        type: string
+        required: false
+
+      # ---------- Modelling Service page ----------
+
+      modelling_form:
+        description: 'Request Now form link (Modelling Service page)'
+        type: string
+        required: false
+
+      # ---------- Footer (every page) ----------
+
+      facebook:
+        description: 'Facebook link (footer)'
+        type: string
+        required: false
+
+      instagram:
+        description: 'Instagram link (footer)'
+        type: string
+        required: false
+
+      linkedin:
+        description: 'LinkedIn link (footer)'
+        type: string
+        required: false
+
+      # ---------- Home page ----------
+
+      linktree:
+        description: 'Contact Us / Linktree link (home page)'
+        type: string
+        required: false
+
+      sponsorship_package:
+        description: 'Sponsorship Package link (home page)'
+        type: string
+        required: false
+
+      donate_organizations:
+        description: 'Donation link for organizations (home page)'
+        type: string
+        required: false
+
+      donate_individuals:
+        description: 'Donation link for individuals (home page)'
+        type: string
+        required: false
+
+
+permissions:
+  contents: write
+  pull-requests: write
+
+
+# Only one settings update at a time, so two people's changes can't clash
+concurrency:
+  group: site-settings
+  cancel-in-progress: false
+
+
+jobs:
+  settings:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Always start from main, even if another branch is picked in the form
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # Form values are passed as environment variables instead of being
+      # written into the command, so nothing typed in a box can run as code
+      - name: Show or update settings
+        id: update
+        env:
+          SETTING_APPLICATIONS_OPEN: ${{ inputs.applications_open }}
+          SETTING_APPLICATION_YEAR: ${{ inputs.application_year }}
+          SETTING_APPLICATION_FORM: ${{ inputs.application_form }}
+          SETTING_MODELLING_FORM: ${{ inputs.modelling_form }}
+          SETTING_FACEBOOK: ${{ inputs.facebook }}
+          SETTING_INSTAGRAM: ${{ inputs.instagram }}
+          SETTING_LINKEDIN: ${{ inputs.linkedin }}
+          SETTING_LINKTREE: ${{ inputs.linktree }}
+          SETTING_SPONSORSHIP_PACKAGE: ${{ inputs.sponsorship_package }}
+          SETTING_DONATE_ORGANIZATIONS: ${{ inputs.donate_organizations }}
+          SETTING_DONATE_INDIVIDUALS: ${{ inputs.donate_individuals }}
+          PR_BODY_FILE: ${{ runner.temp }}/pr-body.md
+        run: node .github/scripts/update-site-config.js
+
+      # Only runs if something was filled in and it actually changed a setting
+      - name: Open a pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: site-settings/run-${{ github.run_number }}-${{ github.run_attempt }}
+        run: |
+          # Commit the change on a new branch as the GitHub Actions bot
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/siteConfig.json
+          git commit -m "chore: update site settings"
+          git push origin "$BRANCH"
+
+          # Open the pull request into main
+          PR_URL=$(gh pr create --base main --head "$BRANCH" --title "chore: update site settings" --body-file "$RUNNER_TEMP/pr-body.md")
+
+          # Add the PR link and next steps to the run's summary page
+          {
+            echo ""
+            echo "### Pull request"
+            echo ""
+            echo "$PR_URL"
+            echo ""
+            echo "Next steps:"
+            echo "1. Ask someone to review the pull request and click each new link."
+            echo "2. After it's merged, run **Deploy to GitHub Pages** to update the live site."
+          } >> "$GITHUB_STEP_SUMMARY"
