@@ -1,0 +1,74 @@
+# Keeps the pinned "📌 Site settings" issue up to date.
+#
+# That issue shows the current links and settings, and has an "Edit site
+# settings" link that opens the form with every box already filled in. This
+# runs whenever the settings change on main, and can also be run by hand from
+# the Actions tab (for example, to create the issue the first time).
+
+name: Update pinned Site settings issue
+
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/siteConfig.json
+      - .github/scripts/update-site-config.js
+      - .github/ISSUE_TEMPLATE/site-settings.yml
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+  issues: write
+
+
+concurrency:
+  group: site-settings-pinned
+  cancel-in-progress: false
+
+
+jobs:
+  pinned:
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # The form adds the site-settings label to each request, so it needs to exist
+      - name: Make sure the labels exist
+        run: |
+          gh label create site-settings --color 0E8A16 --description "Requests from the Update site settings form" --force
+          gh label create site-settings-pinned --color 5319E7 --description "The pinned Site settings issue" --force
+
+      - name: Write the issue text
+        run: node .github/scripts/update-site-config.js --pinned-issue > "$RUNNER_TEMP/pinned.md"
+
+      - name: Create or update the pinned issue
+        run: |
+          NUMBER=$(gh issue list --label site-settings-pinned --state open --json number --jq '.[0].number')
+
+          if [ -z "$NUMBER" ]; then
+            # First run: create the issue and pin it to the top of the Issues tab
+            URL=$(gh issue create --title "📌 Site settings" --label site-settings-pinned --body-file "$RUNNER_TEMP/pinned.md")
+            NUMBER="${URL##*/}"
+            gh issue pin "$NUMBER" || echo "::warning::Couldn't pin issue #$NUMBER automatically. Open it and click Pin issue."
+            echo "Created the Site settings issue: $URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue edit "$NUMBER" --body-file "$RUNNER_TEMP/pinned.md"
+            echo "Updated the Site settings issue: #$NUMBER" >> "$GITHUB_STEP_SUMMARY"
+          fi
