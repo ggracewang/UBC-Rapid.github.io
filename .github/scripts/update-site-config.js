@@ -23,7 +23,7 @@ const OPEN_CHOICES = { 'Open applications': true, 'Close applications': false };
 // can't be pasted into the wrong social media box.
 const LINKS = [
     { env: 'SETTING_APPLICATION_FORM', key: 'applicationForm', label: 'Application form link (Join Us page)' },
-    { env: 'SETTING_MODELLING_FORM', key: 'modellingForm', label: 'Request Now form link (Modelling Service page)' },
+    { env: 'SETTING_MODELLING_FORM', key: 'modellingForm', label: 'Modelling Service request form link' },
     { env: 'SETTING_FACEBOOK', key: 'facebook', label: 'Facebook link (footer)', site: 'facebook.com' },
     { env: 'SETTING_INSTAGRAM', key: 'instagram', label: 'Instagram link (footer)', site: 'instagram.com' },
     { env: 'SETTING_LINKEDIN', key: 'linkedin', label: 'LinkedIn link (footer)', site: 'linkedin.com' },

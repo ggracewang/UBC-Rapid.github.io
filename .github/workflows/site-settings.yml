@@ -22,7 +22,7 @@ on:
       # Not a setting: GitHub's form can't show plain text, so this one-option
       # dropdown is a way to put instructions at the top. The script ignores it.
       how_to_use:
-        description: 'How to use this form: fill in only the boxes you want to change and leave the rest as they are. To just see the current settings, run it without changing anything.'
+        description: 'How to use: fill in only what you want to change. To see the current settings, run without changing anything.'
         type: choice
         options:
           - Got it
@@ -52,7 +52,7 @@ on:
       # ---------- Modelling Service page ----------
 
       modelling_form:
-        description: 'Request Now form link (Modelling Service page)'
+        description: 'Modelling Service request form link'
         type: string
         required: false
 
