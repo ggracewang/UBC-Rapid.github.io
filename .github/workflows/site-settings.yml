@@ -17,17 +17,27 @@ on:
   workflow_dispatch:
     inputs:
 
-      # ---------- Join Us page ----------
+      # ---------- How to use ----------
 
-      # The first label also explains how to use the form
-      applications_open:
-        description: 'Applications (Join Us page). Fill in only what you want to change. To just see the current settings, run with everything left as it is.'
+      # Not a setting: GitHub's form can't show plain text, so this one-option
+      # dropdown is a way to put instructions at the top. The script ignores it.
+      how_to_use:
+        description: 'How to use this form: fill in only the boxes you want to change and leave the rest as they are. To just see the current settings, run it without changing anything.'
         type: choice
         options:
-          - Keep current setting
+          - Got it
+        default: Got it
+
+      # ---------- Join Us page ----------
+
+      applications_open:
+        description: 'Applications (Join Us page)'
+        type: choice
+        options:
+          - Leave as is
           - Open applications
           - Close applications
-        default: Keep current setting
+        default: Leave as is
 
       application_year:
         description: 'Application year, e.g. 2027/28 (Join Us page)'

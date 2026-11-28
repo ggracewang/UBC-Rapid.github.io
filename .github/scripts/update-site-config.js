@@ -16,7 +16,7 @@ const path = require('path');
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'src', 'siteConfig.json');
 
 // The applications dropdown's choices, and what each one sets
-const KEEP = 'Keep current setting';
+const KEEP = 'Leave as is';
 const OPEN_CHOICES = { 'Open applications': true, 'Close applications': false };
 
 // The link boxes on the form. `site` limits a box to one website, so a link
