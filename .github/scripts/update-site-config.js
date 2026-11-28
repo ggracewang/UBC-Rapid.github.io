@@ -53,11 +53,16 @@ function currentSettings(config) {
     ];
 }
 
+// Adds what the person typed to an error message, so they can see what to fix
+function problem(message, value) {
+    return new Error(`${message} You entered: \`${value.replace(/`/g, "'")}\``);
+}
+
 // Returns the link with https:// at the start, or throws an error explaining
 // what's wrong with it.
 function cleanLink(value, { label, site }) {
     if (/\s/.test(value)) {
-        throw new Error(`${label} can't contain spaces.`);
+        throw problem(`${label} can't contain spaces.`, value);
     }
 
     let link;
@@ -65,7 +70,7 @@ function cleanLink(value, { label, site }) {
         link = value.replace(/^https?:\/\//i, 'https://');
     } else if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
         // Some other kind of address, like mailto: or ftp:
-        throw new Error(`${label} doesn't look like a web address.`);
+        throw problem(`${label} doesn't look like a web address.`, value);
     } else {
         link = `https://${value}`;
     }
@@ -74,22 +79,31 @@ function cleanLink(value, { label, site }) {
     try {
         hostname = new URL(link).hostname;
     } catch {
-        throw new Error(`${label} doesn't look like a web address.`);
+        throw problem(`${label} doesn't look like a web address.`, value);
     }
     if (!hostname.includes('.') || hostname.startsWith('.') || hostname.endsWith('.')) {
-        throw new Error(`${label} doesn't look like a web address.`);
+        throw problem(`${label} doesn't look like a web address.`, value);
     }
     if (site && hostname !== site && !hostname.endsWith(`.${site}`)) {
-        throw new Error(`${label} must be a link to ${site}.`);
+        throw problem(`${label} must be a link to ${site}.`, value);
     }
     return link;
 }
 
-// The year must look like 2027/28, with the second year right after the first.
+// The year can be one year (2027) or two years in a row written any common
+// way (2027/28, 2027/2028, 2027-28, 2027 - 2028). It's saved as typed.
 function cleanYear(value) {
-    const match = value.match(/^(\d{4})\/(\d{2})$/);
-    if (!match || Number(match[2]) !== (Number(match[1]) + 1) % 100) {
-        throw new Error(`${YEAR_LABEL} must look like 2027/28.`);
+    const single = value.match(/^(\d{4})$/);
+    const range = value.match(/^(\d{4})\s*[/\-–—]\s*(\d{2}|\d{4})$/);
+    const first = Number((single || range || [])[1]);
+
+    let valid = first >= 2000 && first <= 2099;
+    if (valid && range) {
+        const second = Number(range[2]);
+        valid = range[2].length === 2 ? second === (first + 1) % 100 : second === first + 1;
+    }
+    if (!valid) {
+        throw problem(`${YEAR_LABEL} must be a year like 2027, or two years in a row like 2027/28 or 2027/2028.`, value);
     }
     return value;
 }
@@ -161,7 +175,7 @@ function update() {
 
     if (open && open !== KEEP) {
         if (!(open in OPEN_CHOICES)) {
-            problems.push(`${OPEN_LABEL} must be "${KEEP}", "Open applications" or "Close applications".`);
+            problems.push(problem(`${OPEN_LABEL} must be "${KEEP}", "Open applications" or "Close applications".`, open).message);
         } else if (OPEN_CHOICES[open] !== config.applicationsOpen) {
             changes.push({ label: OPEN_LABEL, old: describeOpen(config.applicationsOpen), new: describeOpen(OPEN_CHOICES[open]) });
             config.applicationsOpen = OPEN_CHOICES[open];

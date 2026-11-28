@@ -40,7 +40,7 @@ on:
         default: Leave as is
 
       application_year:
-        description: 'Application year, e.g. 2027/28 (Join Us page)'
+        description: 'Application year, e.g. 2027/28 or 2027 (Join Us page)'
         type: string
         required: false
 
