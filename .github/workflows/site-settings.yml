@@ -1,16 +1,16 @@
-# Lets team members see and change the links and settings in
+# Lets team members see and change the site's links & info in
 # src/siteConfig.json from the Actions tab, without editing code.
 #
 # Click "Run workflow":
-#   - To see the current settings, leave everything as it is and run it.
+#   - To see the current links & info, leave everything as it is and run it.
 #     The run's page shows every setting in a table.
-#   - To change settings, fill in only the boxes you want to change and run
+#   - To change something, fill in only the boxes you want to change and run
 #     it. Blank boxes keep their current value.
 #
 # Changes never go to main directly: they open a pull request for someone to
 # review. After that's merged, run "Deploy to GitHub Pages" to update the site.
 
-name: Site settings
+name: Update site links & info
 
 
 on:
@@ -22,7 +22,7 @@ on:
       # Not a setting: GitHub's form can't show plain text, so this one-option
       # dropdown is a way to put instructions at the top. The script ignores it.
       how_to_use:
-        description: 'How to use: fill in only what you want to change. To see the current settings, run without changing anything.'
+        description: 'How to use: fill in only what you want to change. To see the current links & info, run without changing anything.'
         type: choice
         options:
           - Got it
@@ -126,7 +126,7 @@ jobs:
 
       # Form values are passed as environment variables instead of being
       # written into the command, so nothing typed in a box can run as code
-      - name: Show or update settings
+      - name: Show or update site links & info
         id: update
         env:
           SETTING_APPLICATIONS_OPEN: ${{ inputs.applications_open }}

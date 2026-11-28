@@ -1,4 +1,4 @@
-// Reads and updates src/siteConfig.json for the "Site settings" workflow in
+// Reads and updates src/siteConfig.json for the "Update site links & info" workflow in
 // the Actions tab (.github/workflows/site-settings.yml).
 //
 // Each form box is passed in as an environment variable (SETTING_INSTAGRAM,
@@ -218,7 +218,7 @@ function update() {
             '',
             ...problems.map((problem) => `- ${problem}`),
             '',
-            '### Current settings',
+            '### Current site links & info',
             '',
             settingsTable(before),
         ].join('\n'));
@@ -231,9 +231,9 @@ function update() {
         writeSummary([
             '## Nothing to change',
             '',
-            'Everything you filled in already matches the current settings, so no pull request was created.',
+            "Everything you filled in already matches what's on the site, so no pull request was created.",
             '',
-            '### Current settings',
+            '### Current site links & info',
             '',
             settingsTable(before),
         ].join('\n'));
@@ -255,13 +255,13 @@ function update() {
     if (process.env.CHANGES_SUMMARY_FILE) {
         fs.writeFileSync(process.env.CHANGES_SUMMARY_FILE, table);
     } else {
-        writeSummary(['## ✅ Site settings updated', '', table].join('\n'));
+        writeSummary(['## ✅ Site links & info updated', '', table].join('\n'));
     }
 
     if (process.env.PR_BODY_FILE) {
         const requestedBy = process.env.GITHUB_ACTOR ? ` by @${process.env.GITHUB_ACTOR}` : '';
         fs.writeFileSync(process.env.PR_BODY_FILE, [
-            `Requested${requestedBy} using the **Site settings** workflow in the Actions tab.`,
+            `Requested${requestedBy} using the **Update site links & info** workflow in the Actions tab.`,
             '',
             changesTable(changes),
             '',
@@ -274,11 +274,11 @@ function update() {
 function show() {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     writeSummary([
-        '## Current site settings',
+        '## Current site links & info',
         '',
         settingsTable(config),
         '',
-        'To change any of these, run **Site settings** again and fill in only the boxes you want to change.',
+        'To change any of these, run **Update site links & info** again and fill in only the boxes you want to change.',
     ].join('\n'));
 }
 
