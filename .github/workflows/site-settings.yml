@@ -141,6 +141,7 @@ jobs:
           SETTING_DONATE_ORGANIZATIONS: ${{ inputs.donate_organizations }}
           SETTING_DONATE_INDIVIDUALS: ${{ inputs.donate_individuals }}
           PR_BODY_FILE: ${{ runner.temp }}/pr-body.md
+          CHANGES_SUMMARY_FILE: ${{ runner.temp }}/changes-summary.md
         run: node .github/scripts/update-site-config.js
 
       # Only runs if something was filled in and it actually changed a setting
@@ -161,14 +162,17 @@ jobs:
           # Open the pull request into main
           PR_URL=$(gh pr create --base main --head "$BRANCH" --title "chore: update site settings" --body-file "$RUNNER_TEMP/pr-body.md")
 
-          # Add the PR link and next steps to the run's summary page
+          # Write the run's summary page: the pull request link first, then the table
           {
+            echo "## ✅ Your change is ready for review"
             echo ""
-            echo "### Pull request"
+            echo "A pull request was created with your change. It will appear on the website once the web dev team reviews and publishes it."
             echo ""
-            echo "$PR_URL"
+            echo "### [View pull request]($PR_URL)"
             echo ""
-            echo "Next steps:"
-            echo "1. Ask someone to review the pull request and click each new link."
-            echo "2. After it's merged, run **Deploy to GitHub Pages** to update the live site."
+            echo "**Next step:** let the web dev team know on Slack so they can review it."
+            echo ""
+            echo "### Your changes"
+            echo ""
+            cat "$RUNNER_TEMP/changes-summary.md"
           } >> "$GITHUB_STEP_SUMMARY"

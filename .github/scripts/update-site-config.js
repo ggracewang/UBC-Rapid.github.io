@@ -235,13 +235,14 @@ function update() {
     fs.writeFileSync(CONFIG_PATH, json + fileEnding);
     setOutput('changed', 'true');
 
-    writeSummary([
-        '## ✅ Site settings updated',
-        '',
-        'A pull request with these changes was opened. Its link is at the bottom of this page.',
-        '',
-        updateTable(before, changes),
-    ].join('\n'));
+    // The workflow adds the pull request link above this table once the pull
+    // request exists, so on GitHub the table goes to a file instead
+    const table = updateTable(before, changes);
+    if (process.env.CHANGES_SUMMARY_FILE) {
+        fs.writeFileSync(process.env.CHANGES_SUMMARY_FILE, table);
+    } else {
+        writeSummary(['## ✅ Site settings updated', '', table].join('\n'));
+    }
 
     if (process.env.PR_BODY_FILE) {
         const requestedBy = process.env.GITHUB_ACTOR ? ` by @${process.env.GITHUB_ACTOR}` : '';
