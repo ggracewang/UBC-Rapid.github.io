@@ -31,7 +31,7 @@ on:
       # ---------- Join Us page ----------
 
       applications_open:
-        description: 'Applications (Join Us page)'
+        description: 'Are applications open or closed? (Join Us page)'
         type: choice
         options:
           - Leave as is

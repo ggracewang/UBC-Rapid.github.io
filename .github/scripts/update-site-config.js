@@ -33,7 +33,7 @@ const LINKS = [
     { env: 'SETTING_DONATE_INDIVIDUALS', key: 'donateIndividuals', label: 'Donation link for individuals (home page)' },
 ];
 
-const OPEN_LABEL = 'Applications (Join Us page)';
+const OPEN_LABEL = 'Applications open or closed (Join Us page)';
 const YEAR_LABEL = 'Application year (Join Us page)';
 
 function readInput(name) {
